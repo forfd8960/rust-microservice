@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package crm;
+
+service Crm {
+  // user has registered X days ago, give them a welcome message
+  rpc Welcome(WelcomeRequest) returns (WelcomeResponse);
+  // last watched in X days, given them something to watch
+  rpc Recall(RecallRequest) returns (RecallResponse);
+  // last watched in X days, and user still have unfinished contents
+  rpc Remind(RemindRequest) returns (RemindResponse);
+}
+
+message WelcomeRequest {
+  string id = 1;
+  // interval for registered time (say 7 is registered 7 days ago)
+  uint32 interval = 2;
+  repeated uint32 content_ids = 3;
+}
+
+message WelcomeResponse {
+  string id = 1;
+}
+
+message RecallRequest {
+  string id = 1;
+  uint32 last_visit_interval = 2;
+  repeated uint32 content_ids = 3;
+}
+
+message RecallResponse {
+  string id = 1;
+}
+
+message RemindRequest {
+  string id = 1;
+  uint32 last_visit_interval = 2;
+}
+
+message RemindResponse {
+  string id = 1;
+}
+
