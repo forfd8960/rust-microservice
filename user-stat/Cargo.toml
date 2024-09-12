@@ -9,6 +9,7 @@ chrono = { workspace = true }
 serde = { workspace = true }
 derive_builder = { workspace = true }
 futures = { workspace = true }
+itertools = { workspace = true }
 jwt-simple = "0.12.9"
 sqlx = { workspace = true }
 prost = { workspace = true }

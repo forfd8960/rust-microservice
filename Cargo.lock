@@ -2843,6 +2843,7 @@ dependencies = [
  "derive_builder",
  "fake",
  "futures",
+ "itertools",
  "jwt-simple",
  "nanoid",
  "prost",
