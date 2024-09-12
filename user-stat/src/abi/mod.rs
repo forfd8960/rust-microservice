@@ -7,7 +7,7 @@ use tonic::{Response, Status};
 use tracing::info;
 
 use crate::{
-    pb::{QueryRequest, RawQueryRequest, User},
+    pb::{QueryRequest, QueryRequestBuilder, RawQueryRequest, TimeQuery, User},
     ResponseStream, ServiceResult, UserStatsService,
 };
 
@@ -99,4 +99,44 @@ fn ids_query(name: &str, ids: &[u32]) -> String {
     }
 
     format!("array{:?} <@ {}", ids, name)
+}
+
+impl QueryRequest {
+    pub fn new(name: &str, lower: DateTime<Utc>, upper: DateTime<Utc>) -> Self {
+        let t1 = Timestamp {
+            seconds: lower.timestamp(),
+            nanos: 0,
+        };
+
+        let t2 = Timestamp {
+            seconds: upper.timestamp(),
+            nanos: 0,
+        };
+
+        QueryRequestBuilder::default()
+            .timestamp((
+                name.to_string(),
+                TimeQuery {
+                    lower: Some(t1),
+                    upper: Some(t2),
+                },
+            ))
+            .build()
+            .expect("Failed to build query")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Utc;
+
+    #[test]
+    fn test_query_request_to_string() {
+        let d1 = Utc.with_ymd_and_hms(2024, 9, 12, 0, 0, 0);
+        let d2 = Utc.with_ymd_and_hms(2024, 10, 01, 0, 0, 0);
+
+        let query = QueryRequest::new("created_at", d1.unwrap(), d2.unwrap());
+        assert_eq!(query.to_string(), "SELECT email, name FROM user_stats WHERE created_at BETWEEN '2024-09-12T00:00:00+00:00' AND '2024-10-01T00:00:00+00:00'");
+    }
 }

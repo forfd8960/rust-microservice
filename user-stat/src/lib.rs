@@ -2,7 +2,10 @@ pub mod abi;
 pub mod pb;
 
 use futures::Stream;
-use pb::{user_stats_server::UserStats, QueryRequest, RawQueryRequest, User};
+use pb::{
+    user_stats_server::{UserStats, UserStatsServer},
+    QueryRequest, RawQueryRequest, User,
+};
 use sqlx::PgPool;
 use std::{ops::Deref, pin::Pin, sync::Arc};
 use tonic::{async_trait, Request, Response, Status};
@@ -25,14 +28,31 @@ impl UserStats for UserStatsService {
     type RawQueryStream = ResponseStream;
 
     async fn query(&self, request: Request<QueryRequest>) -> ServiceResult<Self::QueryStream> {
-        todo!()
+        let q = request.into_inner();
+        self.query(q).await
     }
 
     async fn raw_query(
         &self,
         request: Request<RawQueryRequest>,
     ) -> ServiceResult<Self::RawQueryStream> {
-        todo!()
+        let q = request.into_inner();
+        self.raw_query(q).await
+    }
+}
+
+impl UserStatsService {
+    pub async fn new() -> Self {
+        let pool = PgPool::connect("postgres://postgres:postgres@localhost:5432/user_stats")
+            .await
+            .expect("Failed to connect to db");
+        Self {
+            inner: Arc::new(UserStatsServiceInner { pool }),
+        }
+    }
+
+    pub fn into_server(self) -> UserStatsServer<Self> {
+        UserStatsServer::new(self)
     }
 }
 
