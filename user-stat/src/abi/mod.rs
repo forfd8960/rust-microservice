@@ -1,7 +1,10 @@
 use std::fmt;
 
-// use itertools::Itertools;
+use chrono::{DateTime, TimeZone, Utc};
+use itertools::Itertools;
+use prost_types::Timestamp;
 use tonic::{Response, Status};
+use tracing::info;
 
 use crate::{
     pb::{QueryRequest, RawQueryRequest, User},
@@ -29,6 +32,71 @@ impl UserStatsService {
 
 impl fmt::Display for QueryRequest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "SELECT email, name FROM user_stats WHERE ")
+        let mut sql = "SELECT email, name FROM user_stats WHERE ".to_string();
+
+        let timeconditions = self
+            .timestamps
+            .iter()
+            .map(|(k, v)| timestamp_query(k, v.lower.as_ref(), v.upper.as_ref()))
+            .join(" AND ");
+
+        sql.push_str(&timeconditions);
+
+        let ids_cond = self
+            .ids
+            .iter()
+            .map(|(k, v)| ids_query(k, &v.ids))
+            .join(" AND ");
+
+        if !ids_cond.is_empty() {
+            sql.push_str(" AND ");
+            sql.push_str(&ids_cond);
+        }
+
+        info!("generated SQL: {} for: {:?}", sql, self);
+        write!(f, "{}", sql)
     }
+}
+
+fn timestamp_query(name: &str, lower: Option<&Timestamp>, upper: Option<&Timestamp>) -> String {
+    if lower.is_none() && upper.is_none() {
+        return "TRUE".to_string();
+    }
+
+    if lower.is_none() {
+        return format!(
+            "{} <= {}",
+            name,
+            timestamp_to_utc(upper.unwrap()).to_rfc3339()
+        );
+    }
+
+    if upper.is_none() {
+        return format!(
+            "{} >= {}",
+            name,
+            timestamp_to_utc(lower.unwrap()).to_rfc3339()
+        );
+    }
+
+    format!(
+        "{} BETWEEN '{}' AND '{}'",
+        name,
+        timestamp_to_utc(lower.unwrap()).to_rfc3339(),
+        timestamp_to_utc(upper.unwrap()).to_rfc3339(),
+    )
+}
+
+fn timestamp_to_utc(ts: &Timestamp) -> DateTime<Utc> {
+    let secs = ts.seconds;
+    let nanos = ts.nanos as u32;
+    chrono::Utc.timestamp_opt(secs, nanos).unwrap()
+}
+
+fn ids_query(name: &str, ids: &[u32]) -> String {
+    if ids.is_empty() {
+        return "TRUE".to_string();
+    }
+
+    format!("array{:?} <@ {}", ids, name)
 }
