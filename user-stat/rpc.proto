@@ -7,8 +7,16 @@ import "google/protobuf/timestamp.proto";
 service UserStats {
     rpc Query(QueryRequest) returns (stream User) {}
     rpc RawQuery(RawQueryRequest) returns (stream User) {}
+    rpc Greet(GreetRequest) returns (GreetResponse) {}
 }
 
+message GreetRequest {
+    string msg = 1;
+}
+
+message GreetResponse {
+    string msg = 1;
+}
 
 message User {
     string email = 1;

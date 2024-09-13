@@ -4,7 +4,7 @@ pub mod pb;
 use futures::Stream;
 use pb::{
     user_stats_server::{UserStats, UserStatsServer},
-    QueryRequest, RawQueryRequest, User,
+    GreetRequest, GreetResponse, QueryRequest, RawQueryRequest, User,
 };
 use sqlx::PgPool;
 use std::{ops::Deref, pin::Pin, sync::Arc};
@@ -39,6 +39,12 @@ impl UserStats for UserStatsService {
         let q = request.into_inner();
         self.raw_query(q).await
     }
+
+    async fn greet(&self, req: Request<GreetRequest>) -> Result<Response<GreetResponse>, Status> {
+        Ok(Response::new(GreetResponse {
+            msg: format!("Hello {}", req.into_inner().msg),
+        }))
+    }
 }
 
 impl UserStatsService {
@@ -58,6 +64,7 @@ impl UserStatsService {
 
 impl Deref for UserStatsService {
     type Target = UserStatsServiceInner;
+
     fn deref(&self) -> &Self::Target {
         &self.inner
     }

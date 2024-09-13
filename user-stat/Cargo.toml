@@ -29,3 +29,7 @@ tonic-build = { workspace = true }
 
 [dev-dependencies]
 fake = { version="2.9.2", features=["derive", "chrono"]}
+
+[[bin]]
+name="client"
+path="client/main.rs"

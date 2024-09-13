@@ -21,6 +21,7 @@ fn main() -> Result<()> {
                 "RawQueryRequest",
                 "TimeQuery",
                 "IdQuery",
+                "GreetRequest",
             ],
             None,
         )
