@@ -16,6 +16,8 @@ pub struct NotificationServiceInner {
     sender: mpsc::Sender<Msg>,
 }
 
+type ServiceResult<T> = Result<Response<T>, Status>;
+
 type ResponseStream = Pin<Box<dyn Stream<Item = Result<SendResponse, Status>> + Send>>;
 
 #[async_trait]
