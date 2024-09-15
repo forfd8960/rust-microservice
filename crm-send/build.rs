@@ -1,7 +1,7 @@
 use std::fs;
 
 use anyhow::Result;
-use proto_builder_trait::tonic::BuilderAttributes;
+// use proto_builder_trait::tonic::BuilderAttributes;
 
 fn main() -> Result<()> {
     fs::create_dir_all("src/pb")?;
@@ -9,8 +9,7 @@ fn main() -> Result<()> {
 
     builder
         .out_dir("src/pb")
-        .with_type_attributes(&["MaterializeRequest"], &[r#"#[derive(Eq, Hash)]"#])
-        .compile(&["rpc.proto"], &["."])
+        .compile(&["send_notification.proto"], &["."])
         .unwrap();
 
     Ok(())
