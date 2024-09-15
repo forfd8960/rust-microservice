@@ -17,9 +17,11 @@ tokio = { workspace = true }
 tonic = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+tokio-stream = { workspace = true }
 rng = "0.1.0"
 rand = "0.8.5"
 nanoid = "0.4.0"
+uuid = { version = "1.8.0", features = ["v4"] }
 
 [build-dependencies]
 anyhow = { workspace = true }
