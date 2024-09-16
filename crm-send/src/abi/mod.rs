@@ -1,21 +1,27 @@
-use std::{sync::Arc, time::Duration};
-
-use chrono::Utc;
-use futures::{Stream, StreamExt};
-use prost_types::Timestamp;
-use tokio::{sync::mpsc, time::sleep};
-use tokio_stream::wrappers::ReceiverStream;
-use tonic::{Response, Status};
-use tracing::{info, warn};
-use uuid::Uuid;
+pub mod email;
+pub mod in_app;
+pub mod sms;
 
 use crate::{
     pb::{notification_server::NotificationServer, send_request::Msg, SendRequest, SendResponse},
     NotificationService, NotificationServiceInner, ResponseStream, ServiceResult,
 };
+use chrono::Utc;
+use futures::{Stream, StreamExt};
+use prost_types::Timestamp;
+use std::{sync::Arc, time::Duration};
+use tokio::{sync::mpsc, time::sleep};
+use tokio_stream::wrappers::ReceiverStream;
+use tonic::{Response, Status};
+use tracing::{info, warn};
+
+const CHANNEL_SIZE: usize = 1000;
 
 pub trait Sender {
-    async fn send(self, svc: NotificationService) -> Result<SendResponse, Status>;
+    fn send(
+        self,
+        svc: NotificationService,
+    ) -> impl std::future::Future<Output = Result<SendResponse, Status>> + Send;
 }
 
 impl NotificationService {
@@ -27,7 +33,7 @@ impl NotificationService {
         }
     }
 
-    pub fn innto_server(self) -> NotificationServer<Self> {
+    pub fn into_server(self) -> NotificationServer<Self> {
         NotificationServer::new(self)
     }
 
@@ -35,18 +41,17 @@ impl NotificationService {
         &self,
         mut stream: impl Stream<Item = Result<SendRequest, Status>> + Send + 'static + Unpin,
     ) -> ServiceResult<ResponseStream> {
-        let (tx, rx) = mpsc::channel(100);
+        let (tx, rx) = mpsc::channel(CHANNEL_SIZE);
+        let notify_service = self.clone();
+
         tokio::spawn(async move {
             while let Some(Ok(req)) = stream.next().await {
-                let res = match req.msg {
-                    Some(v) => {
-                        info!("received msg: {:?}", v);
+                let ns = notify_service.clone();
 
-                        Ok(SendResponse {
-                            message_id: Uuid::new_v4().to_string(),
-                            timestamp: Some(to_ts()),
-                        })
-                    }
+                let res = match req.msg {
+                    Some(Msg::Email(email)) => email.send(ns).await,
+                    Some(Msg::Sms(sms)) => sms.send(ns).await,
+                    Some(Msg::InApp(in_app)) => in_app.send(ns).await,
                     None => {
                         warn!("invalid request");
                         Err(Status::invalid_argument("invalid request"))

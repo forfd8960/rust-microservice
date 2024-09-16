@@ -3,7 +3,7 @@ pub mod pb;
 
 use futures::Stream;
 use pb::{notification_server::Notification, send_request::Msg, SendRequest, SendResponse};
-use std::{pin::Pin, sync::Arc};
+use std::{ops::Deref, pin::Pin, sync::Arc};
 use tokio::sync::mpsc;
 use tonic::{async_trait, Request, Response, Status, Streaming};
 
@@ -28,6 +28,14 @@ impl Notification for NotificationService {
         &self,
         request: Request<Streaming<SendRequest>>,
     ) -> Result<Response<Self::SendStream>, Status> {
-        todo!()
+        let req = request.into_inner();
+        self.send(req).await
+    }
+}
+
+impl Deref for NotificationService {
+    type Target = NotificationServiceInner;
+    fn deref(&self) -> &Self::Target {
+        &self.inner
     }
 }
